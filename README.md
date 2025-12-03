@@ -94,23 +94,21 @@ Admin dapat meng-import banyak lembaga sekaligus via CSV:
 
   service_types dipisah dengan ; atau |, contoh:
   Hukum / Litigasi; Konseling & Psikologis; Shelter / Rumah Aman
-
-lat & lng optional (untuk map)
-
-about optional (keterangan / bio lembaga)
+  lat & lng optional (untuk map)
+  about optional (keterangan / bio lembaga)
 
 Preview CSV akan muncul sebelum import, lalu admin klik “Import ke Layanan”.
 
 ### 🌐 Open API (Supabase REST)
 
 Seluruh data layanan dapat diakses melalui Supabase REST API (read-only untuk publik):
-GET {VITE_SUPABASE_URL}/rest/v1/services?select=*&status=eq.Verified
-Headers:
+ ```GET {VITE_SUPABASE_URL}/rest/v1/services?select=*&status=eq.Verified
+ Headers:
   apikey: {VITE_SUPABASE_ANON_KEY}
 
 K/L atau pemerintah daerah yang sudah punya sistem sendiri dapat:
 
-Mengambil data terkini (sinkronisasi)
+- Mengambil data terkini (sinkronisasi)
 
 Di tahap lanjut: mengupdate data terpusat via API (dengan kunci khusus / service role)
 
@@ -145,11 +143,10 @@ npm install
 4. Setup .env
 cp .env.example .env
 
-# lalu edit .env dan isi VITE_SUPABASE_URL & VITE_SUPABASE_ANON_KEY
+lalu edit .env dan isi VITE_SUPABASE_URL & VITE_SUPABASE_ANON_KEY
 
 5. Jalankan Dev Server
 npm run dev
-
 
 Buka di browser:
 http://localhost:5173 (default Vite)
