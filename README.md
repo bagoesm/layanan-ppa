@@ -137,17 +137,3 @@ npm run dev
 
 Buka di browser:
 http://localhost:5173 (default Vite)
-
-### 🌐 Open API (Supabase REST)
-
-Seluruh data layanan dapat diakses melalui Supabase REST API (read-only untuk publik):
- ```GET {VITE_SUPABASE_URL}/rest/v1/services?select=*&status=eq.Verified
- Headers:
-  apikey: {VITE_SUPABASE_ANON_KEY}
-
-K/L atau pemerintah daerah yang sudah punya sistem sendiri dapat:
-
-- Mengambil data terkini (sinkronisasi)
-
-Di tahap lanjut: mengupdate data terpusat via API (dengan kunci khusus / service role)
-
