@@ -104,7 +104,7 @@ Preview CSV akan muncul sebelum import, lalu admin klik “Import ke Layanan”.
 Seluruh data layanan dapat diakses melalui Supabase REST API (read-only untuk publik):
  ```GET {VITE_SUPABASE_URL}/rest/v1/services?select=*&status=eq.Verified
  Headers:
-  apikey: {VITE_SUPABASE_ANON_KEY}
+  apikey: {VITE_SUPABASE_ANON_KEY}```
 
 K/L atau pemerintah daerah yang sudah punya sistem sendiri dapat:
 
