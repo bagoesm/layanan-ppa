@@ -67,7 +67,9 @@ export default function PublicHome() {
     const category = (s.category || '').toLowerCase();
     const address = (s.address || '').toLowerCase();
     const types = s.service_types || [];
-
+ if (s.status && s.status !== 'Verified') {
+    return false;
+  }
     const matchesSearch = !term
       ? true
       : searchMode === 'name'
