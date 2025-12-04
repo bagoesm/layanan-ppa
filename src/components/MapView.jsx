@@ -1,16 +1,33 @@
 // src/components/MapView.jsx
-import React from 'react';
-import { MapContainer, TileLayer, Marker, Tooltip } from 'react-leaflet';
+import React from "react";
+import { MapContainer, TileLayer, Marker, Tooltip } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+
+// 🔹 Import icon bawaan Leaflet lewat bundler (Vite akan resolve path-nya)
+import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
+import markerIcon from "leaflet/dist/images/marker-icon.png";
+import markerShadow from "leaflet/dist/images/marker-shadow.png";
+
+// 🔹 Override icon default Leaflet supaya tidak cari ke /marker-icon-2x.png dsb
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: markerIcon2x,
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
+});
 
 export default function MapView({ services }) {
-  const points = services.filter(
-    (s) => typeof s.lat === 'number' && typeof s.lng === 'number'
+  // hanya layanan yang punya lat & lng valid
+  const points = (services || []).filter(
+    (s) => typeof s.lat === "number" && typeof s.lng === "number"
   );
 
-  const fallbackCenter = [-2.5, 118]; // tengah2 Indonesia
-  const center = points.length
-    ? [points[0].lat, points[0].lng]
-    : fallbackCenter;
+  const fallbackCenter = [-2.5, 118]; // kira-kira tengah Indonesia
+  const center =
+    points.length > 0
+      ? [points[0].lat, points[0].lng]
+      : fallbackCenter;
 
   return (
     <div className="mt-2 h-[480px] rounded-xl overflow-hidden border border-slate-200 bg-slate-200">
@@ -33,15 +50,15 @@ export default function MapView({ services }) {
                   {s.name}
                 </div>
                 <div className="text-slate-700">
-                  {(s.address || '').length > 40
-                    ? (s.address || '').slice(0, 40) + '...'
-                    : s.address || '-'}
+                  {(s.address || "").length > 40
+                    ? (s.address || "").slice(0, 40) + "…"
+                    : s.address || "-"}
                 </div>
                 <div className="mt-1 text-[10px] text-rose-700">
-                  {(s.service_types || []).slice(0, 2).join(', ')}
+                  {(s.service_types || []).slice(0, 2).join(", ")}
                 </div>
                 <div className="mt-1 text-[10px] text-emerald-700">
-                  {s.phone || '-'}
+                  {s.phone || "-"}
                 </div>
               </div>
             </Tooltip>

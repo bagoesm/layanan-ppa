@@ -4,6 +4,7 @@ import { Search, MapPin, PlusCircle, AlertCircle, Phone, XCircle } from 'lucide-
 import { supabase } from '../supabaseClient';
 import MapView from '../components/MapView';
 
+
 export default function PublicHome() {
   const [displayMode, setDisplayMode] = useState('list'); // 'list' | 'map'
   const [services, setServices] = useState([]);
