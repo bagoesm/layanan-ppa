@@ -286,7 +286,15 @@ function ServiceEditModal({ service, serviceTypes, onSave, onClose }) {
 }
 
 export default function AdminDashboard() {
-  const [adminTab, setAdminTab] = useState('queue'); // 'queue' | 'services' | 'master'
+  // STATE KHUSUS TABLE DATA LAYANAN (ADMIN)
+const [svcSearch, setSvcSearch] = useState('');
+const [svcFilterStatus, setSvcFilterStatus] = useState('');      // 'Verified' | 'Nonaktif' | ''
+const [svcFilterOrg, setSvcFilterOrg] = useState('');            // org_category_code
+const [svcFilterType, setSvcFilterType] = useState('');          // nama layanan
+const [svcPageSize, setSvcPageSize] = useState(20);              // 10 / 20 / 50 / 100
+const [svcPage, setSvcPage] = useState(1);
+
+    const [adminTab, setAdminTab] = useState('queue'); // 'queue' | 'services' | 'master'
 
   const [services, setServices] = useState([]);
   const [submissions, setSubmissions] = useState([]);
@@ -753,6 +761,58 @@ export default function AdminDashboard() {
     fetchMasterData();
   };
 
+  // ---- FILTER & PAGINATION UNTUK DATA LAYANAN (ADMIN) ----
+const svcSearchTerm = svcSearch.trim().toLowerCase();
+
+const filteredAdminServices = services.filter((s) => {
+  const name = (s.name || '').toLowerCase();
+  const address = (s.address || '').toLowerCase();
+  const phone = (s.phone || '').toLowerCase();
+  const status = (s.status || '').toLowerCase();
+  const orgCode = s.org_category_code || '';
+  const types = Array.isArray(s.service_types) ? s.service_types : [];
+
+  // search di nama / alamat / phone
+  const matchesSearch = !svcSearchTerm
+    ? true
+    : name.includes(svcSearchTerm) ||
+      address.includes(svcSearchTerm) ||
+      phone.includes(svcSearchTerm);
+
+  // filter status
+  const matchesStatus = !svcFilterStatus
+    ? true
+    : status === svcFilterStatus.toLowerCase();
+
+  // filter kategori lembaga (org_category_code)
+  const matchesOrg = !svcFilterOrg
+    ? true
+    : orgCode === svcFilterOrg;
+
+  // filter jenis layanan
+  const matchesType = !svcFilterType
+    ? true
+    : types.includes(svcFilterType);
+
+  return matchesSearch && matchesStatus && matchesOrg && matchesType;
+});
+
+const svcTotal = filteredAdminServices.length;
+const svcTotalPages = Math.max(
+  1,
+  Math.ceil(svcTotal / (svcPageSize || 10))
+);
+
+const paginatedAdminServices = filteredAdminServices.slice(
+  (svcPage - 1) * svcPageSize,
+  svcPage * svcPageSize
+);
+
+// reset halaman kalau filter/search/pageSize berubah
+useEffect(() => {
+  setSvcPage(1);
+}, [svcSearch, svcFilterStatus, svcFilterOrg, svcFilterType, svcPageSize]);
+
   // --- RENDER ---
 
   return (
@@ -961,243 +1021,372 @@ export default function AdminDashboard() {
       )}
 
       {/* TAB: DATA LAYANAN */}
-      {adminTab === 'services' && (
-        <div className="space-y-4">
-          {/* FORM TAMBAH LAYANAN MANUAL */}
-          <div className="bg-white p-4 rounded-xl shadow border">
-            <h3 className="text-sm font-bold mb-2">
-              Tambah Layanan Manual (Admin)
-            </h3>
-            <p className="text-[11px] text-slate-500 mb-3">
-              Gunakan form ini untuk menambahkan layanan yang sudah
-              dikonfirmasi, tanpa melalui antrian pengajuan.
-            </p>
-            <form
-              onSubmit={handleAdminCreateService}
-              className="grid md:grid-cols-2 gap-3 text-sm"
-            >
-              <div className="space-y-2">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">
-                    Nama Lembaga
-                  </label>
-                  <input
-                    name="name"
-                    className="w-full border border-slate-300 rounded px-3 py-2 text-sm"
-                    required
-                  />
-                </div>
+      {/* TAB: DATA LAYANAN */}
+{adminTab === 'services' && (
+  <div className="bg-white p-4 rounded-xl shadow border space-y-4">
+    {/* ====== FORM TAMBAH LAYANAN MANUAL (ADMIN) ====== */}
+    <div className="border border-slate-200 rounded-lg p-3 bg-slate-50">
+      <h3 className="text-xs font-bold text-slate-800 mb-2">
+        Tambah Layanan Manual (Admin)
+      </h3>
+      <p className="text-[11px] text-slate-500 mb-2">
+        Gunakan form ini untuk menambahkan layanan yang belum masuk dari CSV
+        maupun pengajuan masyarakat.
+      </p>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">
-                    Kategori Lembaga
-                  </label>
-                  <select
-                    name="org_category_code"
-                    className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white"
-                    required
-                  >
-                    <option value="">Pilih kategori…</option>
-                    {orgCategories.map((o) => (
-                      <option key={o.id} value={o.code}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="mt-1 text-[10px] text-slate-500">
-                    Label kategori publik akan mengikuti master data.
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">
-                    Tentang Lembaga (bio)
-                  </label>
-                  <textarea
-                    name="about"
-                    className="w-full border border-slate-300 rounded px-3 py-2 text-sm h-20"
-                    placeholder="Deskripsi singkat lembaga (opsional)"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">
-                    Layanan yang disediakan
-                  </label>
-                  <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50 border border-slate-200 rounded-lg p-2 max-h-32 overflow-auto">
-                    {serviceTypes.map((t) => (
-                      <label key={t.id} className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          name={`type_${t.label}`}
-                          className="rounded border-slate-300"
-                        />
-                        <span>{t.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">
-                      No HP / Hotline
-                    </label>
-                    <input
-                      name="phone"
-                      className="w-full border border-slate-300 rounded px-3 py-2 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">
-                      Jam Buka
-                    </label>
-                    <input
-                      name="hours"
-                      className="w-full border border-slate-300 rounded px-3 py-2 text-sm"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">
-                    Alamat Lengkap
-                  </label>
-                  <textarea
-                    name="address"
-                    className="w-full border border-slate-300 rounded px-3 py-2 text-sm h-16"
-                    required
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">
-                      Latitude (opsional)
-                    </label>
-                    <input
-                      name="lat"
-                      type="number"
-                      step="0.000001"
-                      className="w-full border border-slate-300 rounded px-3 py-2 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">
-                      Longitude (opsional)
-                    </label>
-                    <input
-                      name="lng"
-                      type="number"
-                      step="0.000001"
-                      className="w-full border border-slate-300 rounded px-3 py-2 text-sm"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end gap-2 pt-1">
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="bg-slate-900 text-white rounded px-4 py-2 text-xs font-semibold"
-                  >
-                    {loading ? 'Menyimpan…' : 'Simpan Layanan'}
-                  </button>
-                </div>
-              </div>
-            </form>
+      <form
+        onSubmit={handleAdminCreateService}
+        className="grid md:grid-cols-2 gap-3 text-[11px]"
+      >
+        {/* Kolom kiri */}
+        <div className="space-y-2">
+          <div>
+            <label className="block mb-1 font-semibold text-slate-600">
+              Nama Lembaga
+            </label>
+            <input
+              name="name"
+              className="w-full border border-slate-300 rounded px-2 py-1.5"
+              required
+            />
           </div>
 
-          {/* TABLE DATA LAYANAN */}
-          <div className="bg-white p-4 rounded-xl shadow border">
-            <h3 className="text-sm font-bold mb-3">Data Layanan</h3>
-            {services.length === 0 ? (
-              <p className="text-sm text-slate-400">Belum ada data layanan.</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse text-[11px]">
-                  <thead>
-                    <tr className="bg-slate-50">
-                      <th className="border border-slate-200 px-2 py-1 text-left">
-                        Nama
-                      </th>
-                      <th className="border border-slate-200 px-2 py-1 text-left">
-                        Kategori
-                      </th>
-                      <th className="border border-slate-200 px-2 py-1 text-left">
-                        Layanan
-                      </th>
-                      <th className="border border-slate-200 px-2 py-1 text-left">
-                        Status
-                      </th>
-                      <th className="border border-slate-200 px-2 py-1 text-left">
-                        Aksi
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {services.map((svc) => (
-                      <tr key={svc.id}>
-                        <td className="border border-slate-200 px-2 py-1">
-                          {svc.name}
-                        </td>
-                        <td className="border border-slate-200 px-2 py-1">
-                          {svc.category}
-                        </td>
-                        <td className="border border-slate-200 px-2 py-1">
-                          {(svc.service_types || []).slice(0, 3).join(', ')}
-                          {(svc.service_types || []).length > 3 &&
-                            ` (+${svc.service_types.length - 3})`}
-                        </td>
-                        <td className="border border-slate-200 px-2 py-1">
-                          {svc.status || 'Verified'}
-                        </td>
-                        <td className="border border-slate-200 px-2 py-1">
-                          <div className="flex flex-wrap gap-1">
-                            <button
-                              onClick={() => setServiceBeingEdited(svc)}
-                              className="px-2 py-1 border rounded text-[11px]"
-                            >
-                              Edit
-                            </button>
-                            {svc.status === 'Nonaktif' ? (
-                              <button
-                                onClick={() =>
-                                  handleActivateService(svc)
-                                }
-                                className="px-2 py-1 border rounded text-[11px] text-emerald-700"
-                              >
-                                Aktifkan
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() =>
-                                  handleDeactivateService(svc)
-                                }
-                                className="px-2 py-1 border rounded text-[11px] text-amber-700"
-                              >
-                                Nonaktif
-                              </button>
-                            )}
-                            <button
-                              onClick={() => handleDeleteService(svc)}
-                              className="px-2 py-1 border rounded text-[11px] text-red-700"
-                            >
-                              Hapus
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+          <div>
+            <label className="block mb-1 font-semibold text-slate-600">
+              Kategori Lembaga
+            </label>
+            <select
+              name="org_category_code"
+              className="w-full border border-slate-300 rounded px-2 py-1.5 bg-white"
+              defaultValue=""
+            >
+              <option value="">Pilih kategori...</option>
+              {orgCategories.map((o) => (
+                <option key={o.id} value={o.code}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block mb-1 font-semibold text-slate-600">
+              Tentang Lembaga (opsional)
+            </label>
+            <textarea
+              name="about"
+              className="w-full border border-slate-300 rounded px-2 py-1.5 h-16"
+              placeholder="Deskripsi singkat / bio lembaga..."
+            />
+          </div>
+
+          <div>
+            <label className="block mb-1 font-semibold text-slate-600">
+              Alamat Lengkap
+            </label>
+            <textarea
+              name="address"
+              className="w-full border border-slate-300 rounded px-2 py-1.5 h-16"
+              required
+            />
           </div>
         </div>
+
+        {/* Kolom kanan */}
+        <div className="space-y-2">
+          <div>
+            <label className="block mb-1 font-semibold text-slate-600">
+              Layanan yang disediakan
+            </label>
+            <div className="grid grid-cols-2 gap-1.5 bg-white border border-slate-200 rounded p-2 max-h-32 overflow-auto">
+              {serviceTypes.map((t) => (
+                <label key={t.id} className="flex items-center gap-1">
+                  <input
+                    type="checkbox"
+                    name={`type_${t.id}`}
+                    className="rounded border-slate-300"
+                  />
+                  <span>{t.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block mb-1 font-semibold text-slate-600">
+                Hotline / Telepon
+              </label>
+              <input
+                name="phone"
+                className="w-full border border-slate-300 rounded px-2 py-1.5"
+              />
+            </div>
+            <div>
+              <label className="block mb-1 font-semibold text-slate-600">
+                Jam Buka
+              </label>
+              <input
+                name="hours"
+                className="w-full border border-slate-300 rounded px-2 py-1.5"
+                placeholder="Contoh: 24 jam / Senin–Jumat 08.00–16.00"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block mb-1 font-semibold text-slate-600">
+                Latitude (opsional)
+              </label>
+              <input
+                name="lat"
+                type="number"
+                step="0.000001"
+                className="w-full border border-slate-300 rounded px-2 py-1.5"
+              />
+            </div>
+            <div>
+              <label className="block mb-1 font-semibold text-slate-600">
+                Longitude (opsional)
+              </label>
+              <input
+                name="lng"
+                type="number"
+                step="0.000001"
+                className="w-full border border-slate-300 rounded px-2 py-1.5"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-1">
+            <button
+              type="reset"
+              className="border border-slate-300 rounded px-3 py-1.5 text-[11px] text-slate-600"
+            >
+              Reset
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="bg-slate-900 text-white rounded px-3 py-1.5 text-[11px] font-semibold disabled:opacity-60"
+            >
+              {loading ? 'Menyimpan...' : 'Tambah Layanan'}
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    {/* ====== BLOK DATA LAYANAN (FILTER + TABEL + PAGINATION) ====== */}
+    <div className="space-y-3">
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-bold">Data Layanan</h3>
+          <p className="text-[11px] text-slate-500">
+            Kelola daftar layanan, filter berdasarkan status, kategori lembaga, dan jenis layanan.
+          </p>
+        </div>
+
+        {/* BARIS FILTER & SEARCH */}
+        <div className="flex flex-wrap gap-2 text-[11px] w-full md:w-auto">
+          {/* Search */}
+          <div className="flex items-center border rounded-lg px-2 py-1 bg-slate-50">
+            <input
+              type="text"
+              value={svcSearch}
+              onChange={(e) => setSvcSearch(e.target.value)}
+              placeholder="Cari nama / alamat / hotline..."
+              className="bg-transparent outline-none text-[11px] w-44"
+            />
+          </div>
+
+          {/* Filter Status */}
+          <select
+            value={svcFilterStatus}
+            onChange={(e) => setSvcFilterStatus(e.target.value)}
+            className="border rounded-lg px-2 py-1 bg-white"
+          >
+            <option value="">Semua status</option>
+            <option value="Verified">Verified</option>
+            <option value="Nonaktif">Nonaktif</option>
+          </select>
+
+          {/* Filter Kategori Lembaga */}
+          <select
+            value={svcFilterOrg}
+            onChange={(e) => setSvcFilterOrg(e.target.value)}
+            className="border rounded-lg px-2 py-1 bg-white"
+          >
+            <option value="">Semua kategori</option>
+            {orgCategories.map((o) => (
+              <option key={o.id} value={o.code}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+
+          {/* Filter Jenis Layanan */}
+          <select
+            value={svcFilterType}
+            onChange={(e) => setSvcFilterType(e.target.value)}
+            className="border rounded-lg px-2 py-1 bg-white"
+          >
+            <option value="">Semua layanan</option>
+            {serviceTypes.map((t) => (
+              <option key={t.id} value={t.label}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+
+          {/* Page size */}
+          <select
+            value={svcPageSize}
+            onChange={(e) => setSvcPageSize(Number(e.target.value))}
+            className="border rounded-lg px-2 py-1 bg-white"
+          >
+            <option value={10}>10 / halaman</option>
+            <option value={20}>20 / halaman</option>
+            <option value={50}>50 / halaman</option>
+            <option value={100}>100 / halaman</option>
+          </select>
+        </div>
+      </div>
+
+      {/* INFO JUMLAH DATA */}
+      <p className="text-[11px] text-slate-500">
+        Ditemukan <span className="font-semibold">{svcTotal}</span> layanan.
+      </p>
+
+      {services.length === 0 ? (
+        <p className="text-sm text-slate-400">Belum ada data layanan.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-[11px]">
+            <thead>
+              <tr className="bg-slate-50">
+                <th className="border border-slate-200 px-2 py-1 text-left">
+                  Nama
+                </th>
+                <th className="border border-slate-200 px-2 py-1 text-left">
+                  Kategori
+                </th>
+                <th className="border border-slate-200 px-2 py-1 text-left">
+                  Layanan
+                </th>
+                <th className="border border-slate-200 px-2 py-1 text-left">
+                  Status
+                </th>
+                <th className="border border-slate-200 px-2 py-1 text-left">
+                  Aksi
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginatedAdminServices.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={5}
+                    className="text-center text-slate-400 px-2 py-3"
+                  >
+                    Tidak ada data yang cocok dengan filter.
+                  </td>
+                </tr>
+              ) : (
+                paginatedAdminServices.map((svc) => (
+                  <tr key={svc.id}>
+                    <td className="border border-slate-200 px-2 py-1">
+                      {svc.name}
+                    </td>
+                    <td className="border border-slate-200 px-2 py-1">
+                      {svc.category}
+                    </td>
+                    <td className="border border-slate-200 px-2 py-1">
+                      {(svc.service_types || []).slice(0, 3).join(', ')}
+                      {(svc.service_types || []).length > 3 &&
+                        ` (+${svc.service_types.length - 3})`}
+                    </td>
+                    <td className="border border-slate-200 px-2 py-1">
+                      {svc.status || 'Verified'}
+                    </td>
+                    <td className="border border-slate-200 px-2 py-1">
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => setServiceBeingEdited(svc)}
+                          className="px-2 py-1 border rounded text-[11px]"
+                        >
+                          Edit
+                        </button>
+                        {svc.status !== 'Nonaktif' ? (
+                          <button
+                            onClick={() => handleDeactivateService(svc)}
+                            className="px-2 py-1 border rounded text-[11px] text-amber-700"
+                          >
+                            Nonaktif
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleActivateService(svc)}
+                            className="px-2 py-1 border rounded text-[11px] text-emerald-700"
+                          >
+                            Aktifkan
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleDeleteService(svc)}
+                          className="px-2 py-1 border rounded text-[11px] text-red-700"
+                        >
+                          Hapus
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       )}
+
+      {/* PAGINATION CONTROL */}
+      {svcTotalPages > 1 && (
+        <div className="mt-3 flex items-center justify-center gap-2 text-[11px] text-slate-600">
+          <button
+            disabled={svcPage === 1}
+            onClick={() => setSvcPage((p) => Math.max(1, p - 1))}
+            className={`px-3 py-1 rounded-full border ${
+              svcPage === 1
+                ? 'border-slate-200 text-slate-300 cursor-not-allowed'
+                : 'border-slate-300 hover:bg-slate-100'
+            }`}
+          >
+            ‹ Prev
+          </button>
+          <span className="px-2">
+            Halaman <span className="font-semibold">{svcPage}</span> dari{' '}
+            <span className="font-semibold">{svcTotalPages}</span>
+          </span>
+          <button
+            disabled={svcPage === svcTotalPages}
+            onClick={() =>
+              setSvcPage((p) => Math.min(svcTotalPages, p + 1))
+            }
+            className={`px-3 py-1 rounded-full border ${
+              svcPage === svcTotalPages
+                ? 'border-slate-200 text-slate-300 cursor-not-allowed'
+                : 'border-slate-300 hover:bg-slate-100'
+            }`}
+          >
+            Next ›
+          </button>
+        </div>
+      )}
+    </div>
+  </div>
+)}
+
+
 
       {/* TAB: MASTER DATA */}
       {adminTab === 'master' && (
