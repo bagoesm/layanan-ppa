@@ -29,7 +29,7 @@ export default function PublicHome() {
     const { data, error } = await supabase
       .from('services')
 .select('*', { count: 'exact' })
-.range(0, 9999);
+.range(0, 9999)
 
       .eq('status', 'Verified')
       .order('id', { ascending: true });
