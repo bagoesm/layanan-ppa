@@ -28,7 +28,9 @@ export default function PublicHome() {
     setLoading(true);
     const { data, error } = await supabase
       .from('services')
-      .select('*')
+.select('*', { count: 'exact' })
+.range(0, 9999);
+
       .eq('status', 'Verified')
       .order('id', { ascending: true });
 
