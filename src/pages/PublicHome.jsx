@@ -141,7 +141,7 @@ export default function PublicHome() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedTypeFilter, orgFilter, searchMode]);
+  }, [selectedTypeFilter, orgFilter, searchMode, searchTerm]);
 
   // === SUBMIT: DAFTAR BARU ===
   const handleSubmitNew = async (e) => {
