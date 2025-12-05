@@ -319,11 +319,51 @@ const [svcPage, setSvcPage] = useState(1);
   // --- FETCH DATA ---
 
   const fetchServices = async () => {
-    const { data, error } = await supabase
-      .from('services')
-      .select('*')
-      .order('id', { ascending: true });
-    if (!error) setServices(data || []);
+    setLoading(true);
+  
+    const PAGE_SIZE = 1000;
+    let all = [];
+    let from = 0;
+    let done = false;
+  
+    while (!done) {
+      const { data, error } = await supabase
+        .from('services')
+        .select('*')
+        .eq('status', 'Verified')
+        .order('id', { ascending: true })
+        .range(from, from + PAGE_SIZE - 1);
+  
+      if (error) {
+        console.error('Error fetching services:', error);
+        done = true;
+        break;
+      }
+  
+      if (!data || data.length === 0) {
+        // sudah tidak ada data lagi
+        done = true;
+        break;
+      }
+  
+      all = all.concat(data);
+  
+      // kalau sudah kurang dari PAGE_SIZE, artinya ini page terakhir
+      if (data.length < PAGE_SIZE) {
+        done = true;
+      } else {
+        from += PAGE_SIZE;
+      }
+  
+      // safety guard: jangan ambil lebih dari 10.000 supaya gak brutal
+      if (from > 9000) {
+        done = true;
+        console.warn('Stop at 10.000 rows (guard).');
+      }
+    }
+  
+    setServices(all);
+    setLoading(false);
   };
 
   const fetchSubmissions = async () => {
