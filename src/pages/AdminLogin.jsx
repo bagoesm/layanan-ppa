@@ -1,23 +1,29 @@
-// src/pages/AdminLogin.jsx
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { loginAdmin } from '../services/authService';
 
-export default function AdminLogin({ isAdmin, setIsAdmin }) {
+export default function AdminLogin() {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const handleLogin = (e) => {
+  async function handleLogin(e) {
     e.preventDefault();
-    if (e.target.password.value === 'admin123') {
-      setIsAdmin(true);
-      navigate('/admin');
-    } else {
-      alert('Password salah! Hint: admin123');
-    }
-  };
+    setErrorMsg('');
+    setLoading(true);
 
-  if (isAdmin) {
-    // kalau sudah login, langsung ke dashboard
-    navigate('/admin');
+    const email = e.target.email.value;
+    const password = e.target.password.value;
+
+    try {
+      await loginAdmin(email, password);
+
+      navigate('/admin', { replace: true });
+
+    } catch (err) {
+      setErrorMsg(err.message || 'Login gagal');
+    }
+
   }
 
   return (
@@ -29,14 +35,34 @@ export default function AdminLogin({ isAdmin, setIsAdmin }) {
         <h2 className="text-xl font-bold mb-4 text-center">
           Admin Login
         </h2>
+
+        {errorMsg && (
+          <div className="bg-red-100 text-red-700 p-2 mb-3 rounded text-sm">
+            {errorMsg}
+          </div>
+        )}
+
+        <input
+          type="email"
+          name="email"
+          placeholder="email"
+          className="w-full border p-3 rounded mb-3"
+          required
+        />
+
         <input
           type="password"
           name="password"
-          placeholder="admin123"
+          placeholder="password"
           className="w-full border p-3 rounded mb-4"
+          required
         />
-        <button className="w-full bg-slate-900 text-white p-3 rounded font-bold">
-          Masuk
+
+        <button
+          disabled={loading}
+          className="w-full bg-slate-900 text-white p-3 rounded font-bold disabled:opacity-50"
+        >
+          {loading ? 'Masuk...' : 'Masuk'}
         </button>
       </form>
     </div>
