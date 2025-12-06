@@ -90,7 +90,7 @@ Admin dapat meng-import banyak lembaga sekaligus via CSV:
 - Format header minimal:
 
   ```text
-  name,category,service_types,address,phone,hours,lat,lng,about
+  name,category,service_types,address,phone,hours,about,lat,lng
 
   service_types dipisah dengan ; atau |, contoh:
   Hukum / Litigasi; Konseling & Psikologis; Shelter / Rumah Aman
