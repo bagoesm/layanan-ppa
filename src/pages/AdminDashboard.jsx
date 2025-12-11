@@ -23,6 +23,7 @@ function AdminServiceMini({ service }) {
           Tentang: {service.about.length > 120 ? service.about.slice(0, 120) + '…' : service.about}
         </p>
       )}
+      <p className="text-slate-600">Jenis Layanan: {service.services_target_code || '-'}</p>
       <p className="text-slate-600">Alamat: {service.address || '-'}</p>
       <p className="text-slate-600">Hotline: {service.phone || '-'}</p>
       <p className="text-slate-600">Jam buka: {service.hours || '-'}</p>
@@ -88,202 +89,226 @@ function AdminSubmissionModal({ submission, services, onClose }) {
   );
 }
 
-function ServiceEditModal({ service, serviceTypes, onSave, onClose }) {
-  const [form, setForm] = useState({
-    id: service.id,
-    name: service.name || '',
-    category: service.category || '',
-    about: service.about || '',
-    address: service.address || '',
-    phone: service.phone || '',
-    hours: service.hours || '',
-    lat: service.lat ?? '',
-    lng: service.lng ?? '',
-    selectedTypes: service.service_types || [],
-  });
-
-  const toggleType = (label) => {
-    setForm((f) => {
-      const already = f.selectedTypes.includes(label);
-      return {
-        ...f,
-        selectedTypes: already
-          ? f.selectedTypes.filter((t) => t !== label)
-          : [...f.selectedTypes, label],
-      };
+  function ServiceEditModal({ service, serviceTypes, serviceTarget, onSave, onClose }) {
+    const [form, setForm] = useState({
+      id: service.id,
+      name: service.name || '',
+      category: service.category || '',
+      about: service.about || '',
+      address: service.address || '',
+      phone: service.phone || '',
+      hours: service.hours || '',
+      lat: service.lat ?? '',
+      lng: service.lng ?? '',
+      selectedTypes: service.service_types || [],
+      services_target_code: service.services_target_code || ""
     });
-  };
+    
+    const toggleType = (label) => {
+      setForm((f) => {
+        const already = f.selectedTypes.includes(label);
+        return {
+          ...f,
+          selectedTypes: already
+            ? f.selectedTypes.filter((t) => t !== label)
+            : [...f.selectedTypes, label],
+        };
+      });
+    };
 
-  const handleChange = (field) => (e) => {
-    setForm((f) => ({ ...f, [field]: e.target.value }));
-  };
+    const handleChange = (field) => (e) => {
+      setForm((f) => ({ ...f, [field]: e.target.value }));
+    };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSave({
-      id: form.id,
-      name: form.name,
-      category: form.category,
-      about: form.about,
-      service_types: form.selectedTypes,
-      address: form.address,
-      phone: form.phone,
-      hours: form.hours,
-      lat: form.lat === '' ? null : parseFloat(form.lat),
-      lng: form.lng === '' ? null : parseFloat(form.lng),
-    });
-  };
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      onSave({
+        id: form.id,
+        name: form.name,
+        category: form.category,
+        about: form.about,
+        service_types: form.selectedTypes,
+        address: form.address,
+        phone: form.phone,
+        hours: form.hours,
+        lat: form.lat === '' ? null : parseFloat(form.lat),
+        lng: form.lng === '' ? null : parseFloat(form.lng),
+        services_target_code: form.services_target_code,
+      });
+    };
 
-  return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-      <div className="bg-white w-full max-w-lg rounded-xl shadow-lg max-h-[90vh] overflow-auto">
-        <div className="flex justify-between items-center border-b px-4 py-3">
-          <h2 className="text-sm font-semibold text-slate-900">
-            Edit Layanan – {service.name}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 text-sm"
-          >
-            ✕
-          </button>
-        </div>
-        <form onSubmit={handleSubmit} className="p-4 space-y-3 text-sm">
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">
-              Nama Lembaga
-            </label>
-            <input
-              className="w-full border border-slate-300 rounded px-3 py-2 text-sm"
-              value={form.name}
-              onChange={handleChange('name')}
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">
-              Kategori (label tampilan)
-            </label>
-            <input
-              className="w-full border border-slate-300 rounded px-3 py-2 text-sm"
-              value={form.category}
-              onChange={handleChange('category')}
-              placeholder="Contoh: Fasyankes, UPTD PPA, FPL, dll."
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">
-              Tentang Lembaga (bio)
-            </label>
-            <textarea
-              className="w-full border border-slate-300 rounded px-3 py-2 text-sm h-20"
-              value={form.about}
-              onChange={handleChange('about')}
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">
-              Layanan yang disediakan
-            </label>
-            <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50 border border-slate-200 rounded-lg p-2 max-h-40 overflow-auto">
-              {serviceTypes.map((t) => (
-                <label key={t.id} className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={form.selectedTypes.includes(t.label)}
-                    onChange={() => toggleType(t.label)}
-                    className="rounded border-slate-300"
-                  />
-                  <span>{t.label}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">
-              Alamat
-            </label>
-            <textarea
-              className="w-full border border-slate-300 rounded px-3 py-2 text-sm h-16"
-              value={form.address}
-              onChange={handleChange('address')}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">
-                Hotline
-              </label>
-              <input
-                className="w-full border border-slate-300 rounded px-3 py-2 text-sm"
-                value={form.phone}
-                onChange={handleChange('phone')}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">
-                Jam buka
-              </label>
-              <input
-                className="w-full border border-slate-300 rounded px-3 py-2 text-sm"
-                value={form.hours}
-                onChange={handleChange('hours')}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">
-                Latitude
-              </label>
-              <input
-                type="number"
-                step="0.000001"
-                className="w-full border border-slate-300 rounded px-3 py-2 text-sm"
-                value={form.lat}
-                onChange={handleChange('lat')}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">
-                Longitude
-              </label>
-              <input
-                type="number"
-                step="0.000001"
-                className="w-full border border-slate-300 rounded px-3 py-2 text-sm"
-                value={form.lng}
-                onChange={handleChange('lng')}
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2">
+    return (
+      <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+        <div className="bg-white w-full max-w-lg rounded-xl shadow-lg max-h-[90vh] overflow-auto">
+          <div className="flex justify-between items-center border-b px-4 py-3">
+            <h2 className="text-sm font-semibold text-slate-900">
+              Edit Layanan – {service.name}
+            </h2>
             <button
-              type="button"
               onClick={onClose}
-              className="border border-slate-300 rounded px-3 py-1.5 text-xs text-slate-700"
+              className="text-slate-400 hover:text-slate-600 text-sm"
             >
-              Batal
-            </button>
-            <button
-              type="submit"
-              className="bg-slate-900 text-white rounded px-3 py-1.5 text-xs font-semibold"
-            >
-              Simpan Perubahan
+              ✕
             </button>
           </div>
-        </form>
+          <form onSubmit={handleSubmit} className="p-4 space-y-3 text-sm">
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">
+                Nama Lembaga
+              </label>
+              <input
+                className="w-full border border-slate-300 rounded px-3 py-2 text-sm"
+                value={form.name}
+                onChange={handleChange('name')}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">
+                Kategori (label tampilan)
+              </label>
+              <input
+                className="w-full border border-slate-300 rounded px-3 py-2 text-sm"
+                value={form.category}
+                onChange={handleChange('category')}
+                placeholder="Contoh: Fasyankes, UPTD PPA, FPL, dll."
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">
+                Tentang Lembaga (bio)
+              </label>
+              <textarea
+                className="w-full border border-slate-300 rounded px-3 py-2 text-sm h-20"
+                value={form.about}
+                onChange={handleChange('about')}
+              />
+            </div>
+
+            <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
+                  Jenis Layanan
+                  <span className="text-red-500 ml-1">*</span>
+                </label>
+                <select
+                  value={form.services_target_code}
+                  onChange={handleChange("services_target_code")}
+                  className="w-full border p-2 rounded text-sm"
+                  required
+                >
+                  <option value="">Pilih jenis layanan...</option>
+                  {serviceTarget.map((o) => (
+                    <option key={o.id} value={o.code}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+
+
+              </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">
+                Layanan yang disediakan
+              </label>
+              <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50 border border-slate-200 rounded-lg p-2 max-h-40 overflow-auto">
+                {serviceTypes.map((t) => (
+                  <label key={t.id} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={form.selectedTypes.includes(t.label)}
+                      onChange={() => toggleType(t.label)}
+                      className="rounded border-slate-300"
+                    />
+                    <span>{t.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">
+                Alamat
+              </label>
+              <textarea
+                className="w-full border border-slate-300 rounded px-3 py-2 text-sm h-16"
+                value={form.address}
+                onChange={handleChange('address')}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
+                  Hotline
+                </label>
+                <input
+                  className="w-full border border-slate-300 rounded px-3 py-2 text-sm"
+                  value={form.phone}
+                  onChange={handleChange('phone')}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
+                  Jam buka
+                </label>
+                <input
+                  className="w-full border border-slate-300 rounded px-3 py-2 text-sm"
+                  value={form.hours}
+                  onChange={handleChange('hours')}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
+                  Latitude
+                </label>
+                <input
+                  type="number"
+                  step="0.000001"
+                  className="w-full border border-slate-300 rounded px-3 py-2 text-sm"
+                  value={form.lat}
+                  onChange={handleChange('lat')}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
+                  Longitude
+                </label>
+                <input
+                  type="number"
+                  step="0.000001"
+                  className="w-full border border-slate-300 rounded px-3 py-2 text-sm"
+                  value={form.lng}
+                  onChange={handleChange('lng')}
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="border border-slate-300 rounded px-3 py-1.5 text-xs text-slate-700"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                className="bg-slate-900 text-white rounded px-3 py-1.5 text-xs font-semibold"
+              >
+                Simpan Perubahan
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
 export default function AdminDashboard() {
   // STATE KHUSUS TABLE DATA LAYANAN (ADMIN)
@@ -311,10 +336,17 @@ const [svcPage, setSvcPage] = useState(1);
 
   // Master data
   const [serviceTypes, setServiceTypes] = useState([]);
+   const [serviceTarget, setServiceTarget] = useState([]);
   const [orgCategories, setOrgCategories] = useState([]);
 
   const [stForm, setStForm] = useState({ id: null, code: '', label: '' });
   const [ocForm, setOcForm] = useState({ id: null, code: '', label: '' });
+
+  // === Helper Mapping label ===
+  const getTargetLabel = (code) => {
+    const item = serviceTarget.find((t) => t.code === code);
+    return item ? item.label : "-";
+  };
 
   // --- FETCH DATA ---
 
@@ -381,6 +413,14 @@ const [svcPage, setSvcPage] = useState(1);
       .eq('is_active', true)
       .order('label', { ascending: true });
     if (!stErr) setServiceTypes(st || []);
+
+    // service_target master
+    const { data: sst, error: sstErr } = await supabase
+      .from('services_target')
+      .select('*')
+      .eq('is_active', true)
+      .order('label', { ascending: true });
+    if (!sstErr) setServiceTarget(sst || []);
 
     const { data: oc, error: ocErr } = await supabase
       .from('org_categories')
@@ -517,6 +557,7 @@ const [svcPage, setSvcPage] = useState(1);
           last_updated: new Date().toISOString().slice(0, 10),
           lat: d.lat ?? null,
           lng: d.lng ?? null,
+          services_target_code: d.services_target_code || null,
         },
       ]);
       if (error) errorMsg = error.message;
@@ -534,6 +575,7 @@ const [svcPage, setSvcPage] = useState(1);
           last_updated: new Date().toISOString().slice(0, 10),
           lat: d.lat ?? null,
           lng: d.lng ?? null,
+          services_target_code: d.services_target_code || null,
         })
         .eq('id', sub.target_id);
       if (error) errorMsg = error.message;
@@ -591,6 +633,7 @@ const [svcPage, setSvcPage] = useState(1);
       last_updated: new Date().toISOString().slice(0, 10),
       lat: latRaw ? parseFloat(latRaw) : null,
       lng: lngRaw ? parseFloat(lngRaw) : null,
+      services_target_code: formData.get('target_code') || null,
     };
 
     if (!payload.name || !payload.address) {
@@ -684,6 +727,7 @@ const [svcPage, setSvcPage] = useState(1);
         lat: updated.lat,
         lng: updated.lng,
         last_updated: new Date().toISOString().slice(0, 10),
+        services_target_code: updated.services_target_code,
       })
       .eq('id', updated.id);
     setLoading(false);
@@ -1083,6 +1127,7 @@ useEffect(() => {
           <div>
             <label className="block mb-1 font-semibold text-slate-600">
               Nama Lembaga
+              <span className="text-red-500 ml-1">*</span>
             </label>
             <input
               name="name"
@@ -1123,6 +1168,7 @@ useEffect(() => {
           <div>
             <label className="block mb-1 font-semibold text-slate-600">
               Alamat Lengkap
+              <span className="text-red-500 ml-1">*</span>
             </label>
             <textarea
               name="address"
@@ -1134,6 +1180,23 @@ useEffect(() => {
 
         {/* Kolom kanan */}
         <div className="space-y-2">
+          <div>
+            <label className="block mb-1 font-semibold text-slate-600">
+              Jenis Layanan
+            </label>
+            <select
+              name="target_code"
+              className="w-full border border-slate-300 rounded px-2 py-1.5 bg-white"
+              defaultValue=""
+            >
+              <option value="">Pilih jenis layanan...</option>
+              {serviceTarget.map((o) => (
+                <option key={o.id} value={o.code}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
           <div>
             <label className="block mb-1 font-semibold text-slate-600">
               Layanan yang disediakan
@@ -1313,6 +1376,9 @@ useEffect(() => {
                   Kategori
                 </th>
                 <th className="border border-slate-200 px-2 py-1 text-left">
+                  Jenis Layanan
+                </th>
+                <th className="border border-slate-200 px-2 py-1 text-left">
                   Layanan
                 </th>
                 <th className="border border-slate-200 px-2 py-1 text-left">
@@ -1341,6 +1407,9 @@ useEffect(() => {
                     </td>
                     <td className="border border-slate-200 px-2 py-1">
                       {svc.category}
+                    </td>
+                    <td className="border border-slate-200 px-2 py-1">
+                      {getTargetLabel(svc.services_target_code)}
                     </td>
                     <td className="border border-slate-200 px-2 py-1">
                       {(svc.service_types || []).slice(0, 3).join(', ')}
@@ -1430,287 +1499,344 @@ useEffect(() => {
 
       {/* TAB: MASTER DATA */}
       {adminTab === 'master' && (
-        <div className="grid md:grid-cols-2 gap-4">
-          {/* SERVICE TYPES */}
-          <div className="bg-white p-4 rounded-xl shadow border">
-            <h3 className="text-sm font-bold mb-2">Master Jenis Layanan</h3>
-            <p className="text-[11px] text-slate-500 mb-2">
-              Data di sini mengisi pilihan layanan di publik dan admin.
-            </p>
-            <table className="w-full border-collapse text-[11px] mb-3">
-              <thead>
-                <tr className="bg-slate-50">
-                  <th className="border border-slate-200 px-2 py-1 text-left">
-                    Code
-                  </th>
-                  <th className="border border-slate-200 px-2 py-1 text-left">
-                    Label
-                  </th>
-                  <th className="border border-slate-200 px-2 py-1 text-left">
-                    Status
-                  </th>
-                  <th className="border border-slate-200 px-2 py-1 text-left">
-                    Aksi
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {serviceTypes.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={4}
-                      className="border border-slate-200 px-2 py-2 text-center text-slate-400"
-                    >
-                      Belum ada data.
-                    </td>
+        <div className="space-y-6">
+
+          <div className="grid md:grid-cols-2 gap-4">
+            {/* SERVICE TYPES */}
+            <div className="bg-white p-4 rounded-xl shadow border">
+              <h3 className="text-sm font-bold mb-2">Master Jenis Layanan</h3>
+              <p className="text-[11px] text-slate-500 mb-2">
+                Data di sini mengisi pilihan layanan di publik dan admin.
+              </p>
+              <table className="w-full border-collapse text-[11px] mb-3">
+                <thead>
+                  <tr className="bg-slate-50">
+                    <th className="border border-slate-200 px-2 py-1 text-left">
+                      Code
+                    </th>
+                    <th className="border border-slate-200 px-2 py-1 text-left">
+                      Label
+                    </th>
+                    <th className="border border-slate-200 px-2 py-1 text-left">
+                      Status
+                    </th>
+                    <th className="border border-slate-200 px-2 py-1 text-left">
+                      Aksi
+                    </th>
                   </tr>
-                ) : (
-                  serviceTypes.map((st) => (
-                    <tr key={st.id}>
-                      <td className="border border-slate-200 px-2 py-1">
-                        {st.code}
+                </thead>
+                <tbody>
+                  {serviceTypes.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={4}
+                        className="border border-slate-200 px-2 py-2 text-center text-slate-400"
+                      >
+                        Belum ada data.
                       </td>
-                      <td className="border border-slate-200 px-2 py-1">
-                        {st.label}
+                    </tr>
+                  ) : (
+                    serviceTypes.map((st) => (
+                      <tr key={st.id}>
+                        <td className="border border-slate-200 px-2 py-1">
+                          {st.code}
+                        </td>
+                        <td className="border border-slate-200 px-2 py-1">
+                          {st.label}
+                        </td>
+                        <td className="border border-slate-200 px-2 py-1">
+                          {st.is_active ? 'Aktif' : 'Nonaktif'}
+                        </td>
+                        <td className="border border-slate-200 px-2 py-1">
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() =>
+                                setStForm({
+                                  id: st.id,
+                                  code: st.code,
+                                  label: st.label,
+                                })
+                              }
+                              className="px-2 py-1 border rounded"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() =>
+                                handleToggleServiceTypeActive(st)
+                              }
+                              className="px-2 py-1 border rounded text-[11px]"
+                            >
+                              {st.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+
+              <form
+                onSubmit={handleSaveServiceType}
+                className="space-y-2 text-sm border-t pt-2 mt-2"
+              >
+                <p className="text-[11px] font-semibold text-slate-700">
+                  {stForm.id
+                    ? 'Edit Jenis Layanan'
+                    : 'Tambah Jenis Layanan Baru'}
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[11px] text-slate-600 mb-1">
+                      Code (unik, tanpa spasi)
+                    </label>
+                    <input
+                      value={stForm.code}
+                      onChange={(e) =>
+                        setStForm((f) => ({
+                          ...f,
+                          code: e.target.value,
+                        }))
+                      }
+                      className="w-full border border-slate-300 rounded px-2 py-1 text-[11px]"
+                      placeholder="mis: hukum"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-slate-600 mb-1">
+                      Label
+                    </label>
+                    <input
+                      value={stForm.label}
+                      onChange={(e) =>
+                        setStForm((f) => ({
+                          ...f,
+                          label: e.target.value,
+                        }))
+                      }
+                      className="w-full border border-slate-300 rounded px-2 py-1 text-[11px]"
+                      placeholder="Hukum / Litigasi"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  {stForm.id && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setStForm({ id: null, code: '', label: '' })
+                      }
+                      className="px-3 py-1 border rounded text-[11px]"
+                    >
+                      Reset
+                    </button>
+                  )}
+                  <button
+                    type="submit"
+                    className="px-3 py-1 bg-slate-900 text-white rounded text-[11px]"
+                  >
+                    Simpan
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* ORG CATEGORIES */}
+            <div className="bg-white p-4 rounded-xl shadow border">
+              <h3 className="text-sm font-bold mb-2">
+                Master Kategori Lembaga
+              </h3>
+              <p className="text-[11px] text-slate-500 mb-2">
+                Dipakai sebagai kategori lembaga & filter di halaman publik.
+              </p>
+              <table className="w-full border-collapse text-[11px] mb-3">
+                <thead>
+                  <tr className="bg-slate-50">
+                    <th className="border border-slate-200 px-2 py-1 text-left">
+                      Code
+                    </th>
+                    <th className="border border-slate-200 px-2 py-1 text-left">
+                      Label
+                    </th>
+                    <th className="border border-slate-200 px-2 py-1 text-left">
+                      Status
+                    </th>
+                    <th className="border border-slate-200 px-2 py-1 text-left">
+                      Aksi
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {orgCategories.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={4}
+                        className="border border-slate-200 px-2 py-2 text-center text-slate-400"
+                      >
+                        Belum ada data.
                       </td>
-                      <td className="border border-slate-200 px-2 py-1">
-                        {st.is_active ? 'Aktif' : 'Nonaktif'}
-                      </td>
-                      <td className="border border-slate-200 px-2 py-1">
+                    </tr>
+                  ) : (
+                    orgCategories.map((oc) => (
+                      <tr key={oc.id}>
+                        <td className="border border-slate-200 px-2 py-1">
+                          {oc.code}
+                        </td>
+                        <td className="border border-slate-200 px-2 py-1">
+                          {oc.label}
+                        </td>
+                        <td className="border border-slate-200 px-2 py-1">
+                          {oc.is_active ? 'Aktif' : 'Nonaktif'}
+                        </td>
+                        <td className="border border-slate-200 px-2 py-1">
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() =>
+                                setOcForm({
+                                  id: oc.id,
+                                  code: oc.code,
+                                  label: oc.label,
+                                })
+                              }
+                              className="px-2 py-1 border rounded"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() =>
+                                handleToggleOrgCategoryActive(oc)
+                              }
+                              className="px-2 py-1 border rounded text-[11px]"
+                            >
+                              {oc.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+
+              <form
+                onSubmit={handleSaveOrgCategory}
+                className="space-y-2 text-sm border-t pt-2 mt-2"
+              >
+                <p className="text-[11px] font-semibold text-slate-700">
+                  {ocForm.id
+                    ? 'Edit Kategori Lembaga'
+                    : 'Tambah Kategori Lembaga Baru'}
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[11px] text-slate-600 mb-1">
+                      Code (unik, tanpa spasi)
+                    </label>
+                    <input
+                      value={ocForm.code}
+                      onChange={(e) =>
+                        setOcForm((f) => ({
+                          ...f,
+                          code: e.target.value,
+                        }))
+                      }
+                      className="w-full border border-slate-300 rounded px-2 py-1 text-[11px]"
+                      placeholder="mis: fasyankes"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-slate-600 mb-1">
+                      Label
+                    </label>
+                    <input
+                      value={ocForm.label}
+                      onChange={(e) =>
+                        setOcForm((f) => ({
+                          ...f,
+                          label: e.target.value,
+                        }))
+                      }
+                      className="w-full border border-slate-300 rounded px-2 py-1 text-[11px]"
+                      placeholder="Fasyankes"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  {ocForm.id && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setOcForm({ id: null, code: '', label: '' })
+                      }
+                      className="px-3 py-1 border rounded text-[11px]"
+                    >
+                      Reset
+                    </button>
+                  )}
+                  <button
+                    type="submit"
+                    className="px-3 py-1 bg-slate-900 text-white rounded text-[11px]"
+                  >
+                    Simpan
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* MASTER AKUN ADMIN */}
+            {/* <div className="bg-white rounded-xl shadow border">
+              <div className="flex justify-between items-center px-4 py-3 border-b">
+                <div>
+                  <h3 className="text-sm font-bold">Master Akun Admin</h3>
+                  <p className="text-[11px] text-slate-500">
+                    Kelola admin yang memiliki akses ke sistem.
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => alert('Open modal tambah admin')}
+                  className="bg-slate-900 text-white text-xs px-4 py-2 rounded-lg"
+                >
+                  + Tambah Admin
+                </button>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-[11px]">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="border px-3 py-2 text-left">Nama</th>
+                      <th className="border px-3 py-2 text-left">Email</th>
+                      <th className="border px-3 py-2 text-left">Role</th>
+                      <th className="border px-3 py-2 text-left">Status</th>
+                      <th className="border px-3 py-2 text-left">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="border px-3 py-2">Andi</td>
+                      <td className="border px-3 py-2">andi@layanan.go.id</td>
+                      <td className="border px-3 py-2">Super Admin</td>
+                      <td className="border px-3 py-2 text-emerald-700">Aktif</td>
+                      <td className="border px-3 py-2">
                         <div className="flex gap-1">
-                          <button
-                            onClick={() =>
-                              setStForm({
-                                id: st.id,
-                                code: st.code,
-                                label: st.label,
-                              })
-                            }
-                            className="px-2 py-1 border rounded"
-                          >
+                          <button className="px-2 py-1 border rounded">
                             Edit
                           </button>
-                          <button
-                            onClick={() =>
-                              handleToggleServiceTypeActive(st)
-                            }
-                            className="px-2 py-1 border rounded text-[11px]"
-                          >
-                            {st.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+                          <button className="px-2 py-1 border rounded">
+                            Reset PW
+                          </button>
+                          <button className="px-2 py-1 border rounded text-red-600">
+                            Nonaktif
                           </button>
                         </div>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-
-            <form
-              onSubmit={handleSaveServiceType}
-              className="space-y-2 text-sm border-t pt-2 mt-2"
-            >
-              <p className="text-[11px] font-semibold text-slate-700">
-                {stForm.id
-                  ? 'Edit Jenis Layanan'
-                  : 'Tambah Jenis Layanan Baru'}
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-[11px] text-slate-600 mb-1">
-                    Code (unik, tanpa spasi)
-                  </label>
-                  <input
-                    value={stForm.code}
-                    onChange={(e) =>
-                      setStForm((f) => ({
-                        ...f,
-                        code: e.target.value,
-                      }))
-                    }
-                    className="w-full border border-slate-300 rounded px-2 py-1 text-[11px]"
-                    placeholder="mis: hukum"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] text-slate-600 mb-1">
-                    Label
-                  </label>
-                  <input
-                    value={stForm.label}
-                    onChange={(e) =>
-                      setStForm((f) => ({
-                        ...f,
-                        label: e.target.value,
-                      }))
-                    }
-                    className="w-full border border-slate-300 rounded px-2 py-1 text-[11px]"
-                    placeholder="Hukum / Litigasi"
-                  />
-                </div>
+                  </tbody>
+                </table>
               </div>
-              <div className="flex justify-end gap-2">
-                {stForm.id && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setStForm({ id: null, code: '', label: '' })
-                    }
-                    className="px-3 py-1 border rounded text-[11px]"
-                  >
-                    Reset
-                  </button>
-                )}
-                <button
-                  type="submit"
-                  className="px-3 py-1 bg-slate-900 text-white rounded text-[11px]"
-                >
-                  Simpan
-                </button>
-              </div>
-            </form>
-          </div>
-
-          {/* ORG CATEGORIES */}
-          <div className="bg-white p-4 rounded-xl shadow border">
-            <h3 className="text-sm font-bold mb-2">
-              Master Kategori Lembaga
-            </h3>
-            <p className="text-[11px] text-slate-500 mb-2">
-              Dipakai sebagai kategori lembaga & filter di halaman publik.
-            </p>
-            <table className="w-full border-collapse text-[11px] mb-3">
-              <thead>
-                <tr className="bg-slate-50">
-                  <th className="border border-slate-200 px-2 py-1 text-left">
-                    Code
-                  </th>
-                  <th className="border border-slate-200 px-2 py-1 text-left">
-                    Label
-                  </th>
-                  <th className="border border-slate-200 px-2 py-1 text-left">
-                    Status
-                  </th>
-                  <th className="border border-slate-200 px-2 py-1 text-left">
-                    Aksi
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {orgCategories.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={4}
-                      className="border border-slate-200 px-2 py-2 text-center text-slate-400"
-                    >
-                      Belum ada data.
-                    </td>
-                  </tr>
-                ) : (
-                  orgCategories.map((oc) => (
-                    <tr key={oc.id}>
-                      <td className="border border-slate-200 px-2 py-1">
-                        {oc.code}
-                      </td>
-                      <td className="border border-slate-200 px-2 py-1">
-                        {oc.label}
-                      </td>
-                      <td className="border border-slate-200 px-2 py-1">
-                        {oc.is_active ? 'Aktif' : 'Nonaktif'}
-                      </td>
-                      <td className="border border-slate-200 px-2 py-1">
-                        <div className="flex gap-1">
-                          <button
-                            onClick={() =>
-                              setOcForm({
-                                id: oc.id,
-                                code: oc.code,
-                                label: oc.label,
-                              })
-                            }
-                            className="px-2 py-1 border rounded"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() =>
-                              handleToggleOrgCategoryActive(oc)
-                            }
-                            className="px-2 py-1 border rounded text-[11px]"
-                          >
-                            {oc.is_active ? 'Nonaktifkan' : 'Aktifkan'}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-
-            <form
-              onSubmit={handleSaveOrgCategory}
-              className="space-y-2 text-sm border-t pt-2 mt-2"
-            >
-              <p className="text-[11px] font-semibold text-slate-700">
-                {ocForm.id
-                  ? 'Edit Kategori Lembaga'
-                  : 'Tambah Kategori Lembaga Baru'}
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-[11px] text-slate-600 mb-1">
-                    Code (unik, tanpa spasi)
-                  </label>
-                  <input
-                    value={ocForm.code}
-                    onChange={(e) =>
-                      setOcForm((f) => ({
-                        ...f,
-                        code: e.target.value,
-                      }))
-                    }
-                    className="w-full border border-slate-300 rounded px-2 py-1 text-[11px]"
-                    placeholder="mis: fasyankes"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] text-slate-600 mb-1">
-                    Label
-                  </label>
-                  <input
-                    value={ocForm.label}
-                    onChange={(e) =>
-                      setOcForm((f) => ({
-                        ...f,
-                        label: e.target.value,
-                      }))
-                    }
-                    className="w-full border border-slate-300 rounded px-2 py-1 text-[11px]"
-                    placeholder="Fasyankes"
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end gap-2">
-                {ocForm.id && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setOcForm({ id: null, code: '', label: '' })
-                    }
-                    className="px-3 py-1 border rounded text-[11px]"
-                  >
-                    Reset
-                  </button>
-                )}
-                <button
-                  type="submit"
-                  className="px-3 py-1 bg-slate-900 text-white rounded text-[11px]"
-                >
-                  Simpan
-                </button>
-              </div>
-            </form>
+            </div> */}
           </div>
         </div>
       )}
@@ -1728,6 +1854,7 @@ useEffect(() => {
         <ServiceEditModal
           service={serviceBeingEdited}
           serviceTypes={serviceTypes}
+          serviceTarget={serviceTarget}
           onSave={handleSaveServiceEdit}
           onClose={() => setServiceBeingEdited(null)}
         />

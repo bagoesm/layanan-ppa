@@ -1,6 +1,6 @@
 // src/pages/PublicHome.jsx
 import React, { useEffect, useState } from 'react';
-import { Search, MapPin, PlusCircle, AlertCircle, Phone, XCircle } from 'lucide-react';
+import { Search, MapPin, PlusCircle, AlertCircle, Phone, XCircle, Users } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import MapView from '../components/MapView';
 
@@ -12,10 +12,12 @@ export default function PublicHome() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTypeFilter, setSelectedTypeFilter] = useState('');
+  const [targetFilter, setTargetFilter] = useState('');
   const [orgFilter, setOrgFilter] = useState('');
   const [searchMode, setSearchMode] = useState('name');
 
   const [serviceTypes, setServiceTypes] = useState([]);
+  const [serviceTarget, setServiceTarget] = useState([]);
   const [orgCategories, setOrgCategories] = useState([]);
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -82,6 +84,14 @@ export default function PublicHome() {
       .order('label', { ascending: true });
     if (!stErr) setServiceTypes(st || []);
 
+     // service_target master
+    const { data: sst, error: sstErr } = await supabase
+      .from('services_target')
+      .select('*')
+      .eq('is_active', true)
+      .order('label', { ascending: true });
+    if (!sstErr) setServiceTarget(sst || []);
+
     // org_categories master
     const { data: oc, error: ocErr } = await supabase
       .from('org_categories')
@@ -91,10 +101,13 @@ export default function PublicHome() {
     if (!ocErr) setOrgCategories(oc || []);
   };
 
-  useEffect(() => {
+ useEffect(() => {
+  Promise.resolve().then(() => {
     fetchServices();
     fetchMasterData();
-  }, []);
+  });
+}, []);
+
 
   // === FILTER & PAGINATION ===
   const term = searchTerm.trim().toLowerCase();
@@ -104,9 +117,10 @@ export default function PublicHome() {
     const category = (s.category || '').toLowerCase();
     const address = (s.address || '').toLowerCase();
     const types = s.service_types || [];
- if (s.status && s.status !== 'Verified') {
-    return false;
-  }
+
+    if (s.status && s.status !== 'Verified') {
+      return false;
+    }
     const matchesSearch = !term
       ? true
       : searchMode === 'name'
@@ -117,7 +131,12 @@ export default function PublicHome() {
       ? true
       : types.includes(selectedTypeFilter);
 
+    const matchesTarget = !targetFilter
+      ? true
+      : (s.services_target_code || '').toLowerCase() === targetFilter.toLowerCase();
+
     let matchesOrgType = true;
+    
     if (orgFilter) {
       // Kalau sudah ada kolom org_category_code di services:
       if (s.org_category_code) {
@@ -130,7 +149,7 @@ export default function PublicHome() {
       }
     }
 
-    return matchesSearch && matchesServiceType && matchesOrgType;
+    return matchesSearch && matchesServiceType && matchesTarget && matchesOrgType;
   });
 
   const totalPages = Math.max(1, Math.ceil(filteredServices.length / ITEMS_PER_PAGE));
@@ -139,9 +158,16 @@ export default function PublicHome() {
     currentPage * ITEMS_PER_PAGE
   );
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [selectedTypeFilter, orgFilter, searchMode, searchTerm]);
+ useEffect(() => {
+  Promise.resolve().then(() => setCurrentPage(1));
+  }, [selectedTypeFilter, targetFilter, orgFilter, searchMode, searchTerm]);
+
+  // === Helper Mapping label ===
+  const getTargetLabel = (code) => {
+    const item = serviceTarget.find((t) => t.code === code);
+    return item ? item.label : "-";
+  };
+
 
   // === SUBMIT: DAFTAR BARU ===
   const handleSubmitNew = async (e) => {
@@ -176,7 +202,8 @@ export default function PublicHome() {
           contact_person: formData.get('cp_name'),
           contact_number: formData.get('cp_phone'),
           lat: latRaw ? parseFloat(latRaw) : null,
-          lng: lngRaw ? parseFloat(lngRaw) : null
+          lng: lngRaw ? parseFloat(lngRaw) : null,
+          services_target_code: formData.get('target_code')
         }
       }
     ]);
@@ -221,7 +248,8 @@ export default function PublicHome() {
           hours: formData.get('hours'),
           about: formData.get('about') || '',
           lat: latRaw ? parseFloat(latRaw) : selectedService.lat ?? null,
-          lng: lngRaw ? parseFloat(lngRaw) : selectedService.lng ?? null
+          lng: lngRaw ? parseFloat(lngRaw) : selectedService.lng ?? null,
+          services_target_code: formData.get('target_code')
         }
       }
     ]);
@@ -275,17 +303,24 @@ export default function PublicHome() {
           </div>
 
           <form onSubmit={handleSubmitNew} className="space-y-3">
-            <input
-              name="name"
-              placeholder="Nama Lembaga"
-              className="w-full border p-2 rounded"
-              required
-            />
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">
+                Nama Lembaga
+                <span className="text-red-500 ml-1">*</span>
+              </label>
+              <input
+                name="name"
+                placeholder="Nama Lembaga"
+                className="w-full border p-2 rounded"
+                required
+              />
+            </div>
 
             {/* pilih kategori lembaga dari org_categories */}
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1">
                 Kategori Lembaga
+                <span className="text-red-500 ml-1">*</span>
               </label>
               <select
                 name="org_category_code"
@@ -301,12 +336,39 @@ export default function PublicHome() {
               </select>
             </div>
 
-            <textarea
-              name="about"
-              placeholder="Deskripsi singkat / profil lembaga (opsional)"
-              className="w-full border p-2 rounded text-sm h-20"
-            />
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">
+                Tentang Lembaga (bio)
+              </label>
+              <textarea
+                name="about"
+                placeholder="Deskripsi singkat / profil lembaga (opsional)"
+                className="w-full border p-2 rounded text-sm h-20"
+              />
+            </div>
 
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">
+                Jenis Layanan
+                <span className="text-red-500 ml-1">*</span>
+              </label>
+              <select
+                name="target_code"
+                className="w-full border p-2 rounded text-sm"
+                required
+              >
+                <option value="">Pilih jenis layanan...</option>
+                {serviceTarget.map((o) => (
+                  <option key={o.id} value={o.code}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <label className="block text-xs font-semibold text-slate-600 mb-1">
+                Layanan yang disediakan
+              </label>
             <div className="p-2 border rounded bg-slate-50 text-xs grid grid-cols-2 gap-2">
               {serviceTypes.map((t) => (
                 <label key={t.id} className="flex gap-1">
@@ -315,55 +377,101 @@ export default function PublicHome() {
               ))}
             </div>
 
-            <input
-              name="phone"
-              placeholder="No HP/Hotline"
-              className="w-full border p-2 rounded"
-              required
-            />
-            <input
-              name="hours"
-              placeholder="Jam Buka"
-              className="w-full border p-2 rounded"
-              required
-            />
-            <textarea
-              name="address"
-              placeholder="Alamat Lengkap"
-              className="w-full border p-2 rounded"
-              required
-            />
-
-            <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">
+                No. HP / Hotline
+                <span className="text-red-500 ml-1">*</span>
+              </label>
               <input
-                name="lat"
-                placeholder="Latitude (opsional)"
-                className="border p-2 rounded"
-                type="number"
-                step="0.000001"
+                name="phone"
+                placeholder="No HP/Hotline"
+                className="w-full border p-2 rounded"
+                required
               />
+            </div>
+            
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">
+                Jam Buka
+                <span className="text-red-500 ml-1">*</span>
+              </label>
               <input
-                name="lng"
-                placeholder="Longitude (opsional)"
-                className="border p-2 rounded"
-                type="number"
-                step="0.000001"
+                name="hours"
+                placeholder="Jam Buka"
+                className="w-full border p-2 rounded"
+                required
+              />
+            </div>
+            
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">
+                Alamat
+                <span className="text-red-500 ml-1">*</span>
+              </label>
+              <textarea
+                name="address"
+                placeholder="Alamat Lengkap"
+                className="w-full border p-2 rounded"
+                required
               />
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-              <input
-                name="cp_name"
-                placeholder="Nama Kontak (Admin)"
-                className="border p-2 rounded"
-                required
-              />
-              <input
-                name="cp_phone"
-                placeholder="No HP Kontak"
-                className="border p-2 rounded"
-                required
-              />
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
+                  Latitude
+                </label>
+                <input
+                  name="lat"
+                  placeholder="Latitude (opsional)"
+                  className="border w-full pb-2 pt-2 pl-2 rounded"
+                  type="number"
+                  step="0.000001"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
+                  Longitude
+                </label>
+                <input
+                  name="lng"
+                  placeholder="Longitude (opsional)"
+                  className="border w-full pb-2 pt-2 pl-2 rounded"
+                  type="number"
+                  step="0.000001"
+                />
+              </div>
+              
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
+                  Nama Pengelola
+                  <span className="text-red-500 ml-1">*</span>
+                </label>
+                <input
+                  name="cp_name"
+                  placeholder="Nama Kontak (Admin)"
+                  className="border w-full pb-2 pt-2 pl-2 rounded"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
+                  No. Kontak
+                  <span className="text-red-500 ml-1">*</span>
+                </label>
+                <input
+                  name="cp_phone"
+                  placeholder="No HP Kontak"
+                  className="border w-full pb-2 pt-2 pl-2 rounded"
+                  required
+                />
+              </div>
+              
             </div>
 
             <div className="flex gap-2">
@@ -419,6 +527,7 @@ export default function PublicHome() {
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1">
                 Nama Lembaga
+                <span className="text-red-500 ml-1">*</span>
               </label>
               <input
                 name="name"
@@ -437,6 +546,27 @@ export default function PublicHome() {
                 defaultValue={selectedService.about || ''}
                 className="w-full border border-slate-300 rounded-lg px-3 py-2 h-20 text-sm"
               />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">
+                Jenis Layanan
+                <span className="text-red-500 ml-1">*</span>
+              </label>
+              <select
+                name="target_code"
+                defaultValue={selectedService.services_target_code || ""}
+                className="w-full border p-2 rounded text-sm"
+                required
+              >
+                <option value="">Pilih jenis layanan...</option>
+                {serviceTarget.map((o) => (
+                  <option key={o.id} value={o.code}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+
             </div>
 
             <div>
@@ -462,6 +592,7 @@ export default function PublicHome() {
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">
                   No HP / Hotline
+                  <span className="text-red-500 ml-1">*</span>
                 </label>
                 <input
                   name="phone"
@@ -473,6 +604,7 @@ export default function PublicHome() {
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">
                   Jam Buka
+                  <span className="text-red-500 ml-1">*</span>
                 </label>
                 <input
                   name="hours"
@@ -486,6 +618,7 @@ export default function PublicHome() {
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1">
                 Alamat Lengkap
+                <span className="text-red-500 ml-1">*</span>
               </label>
               <textarea
                 name="address"
@@ -525,6 +658,7 @@ export default function PublicHome() {
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1">
                 Alasan perubahan / catatan ke admin
+                <span className="text-red-500 ml-1">*</span>
               </label>
               <textarea
                 name="reason"
@@ -567,7 +701,7 @@ export default function PublicHome() {
         <div className="max-w-5xl mx-auto space-y-6">
           <div className="text-center space-y-2">
             <h1 className="text-3xl font-extrabold text-slate-800">
-              Repository Layanan Perlindungan
+              Direktori Layanan Perlindungan Perempuan dan Anak
             </h1>
             <p className="text-slate-600 text-sm">
               Database terpadu UPTD PPA, fasilitas kesehatan, Kepolisian, Mitra layanan PPA.
@@ -603,7 +737,7 @@ export default function PublicHome() {
           </div>
 
           {/* Filters */}
-          <div className="max-w-2xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3">
+          <div className="max-w-2xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3">
             <div>
               <label className="text-[11px] font-semibold text-slate-500">
                 Filter Layanan
@@ -617,6 +751,23 @@ export default function PublicHome() {
                 {serviceTypes.map((t) => (
                   <option key={t.id} value={t.label}>
                     {t.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold text-slate-500">
+                Filter Jenis Layanan
+              </label>
+              <select
+                value={targetFilter}
+                onChange={(e) => setTargetFilter(e.target.value)}
+                className="mt-1 w-full p-2 border rounded-lg text-sm bg-white shadow-sm focus:ring-2 focus:ring-rose-500"
+              >
+                <option value="">Semua Jenis Layanan</option>
+                {serviceTarget.map((b) => (
+                  <option key={b.id} value={b.code}>
+                    {b.label}
                   </option>
                 ))}
               </select>
@@ -733,6 +884,10 @@ export default function PublicHome() {
                             : s.address
                           : '-'}
                       </p>
+                      <p className="flex gap-1 items-center font-medium ">
+                        <Users size={12} />
+                        {getTargetLabel(s.services_target_code)}
+                      </p>
                       <p className="flex gap-1 items-center font-medium text-emerald-700">
                         <Phone size={12} className="text-emerald-600" />
                         {s.phone || '-'}
@@ -814,6 +969,14 @@ export default function PublicHome() {
                   </p>
                 </div>
               )}
+
+              <div className="bg-slate-50 p-3 rounded mb-3">
+                <p className="font-bold text-xs text-slate-400">JENIS LAYANAN</p>
+                <div className="flex flex-wrap gap-1 mt-1 text-sm text-slate-800">
+                  {getTargetLabel(selectedService.services_target_code)}
+                  
+                </div>
+              </div>
 
               <div className="bg-slate-50 p-3 rounded mb-3">
                 <p className="font-bold text-xs text-slate-400">LAYANAN</p>
