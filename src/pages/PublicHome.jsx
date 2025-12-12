@@ -268,8 +268,19 @@ export default function PublicHome() {
   if (view === 'add-new') {
     return (
       <div className="container mx-auto p-4 max-w-lg">
-        <div className="bg-white p-6 rounded-xl shadow">
+        <div className="bg-white p-6 rounded-xl shadow relative">
           <h2 className="text-xl font-bold mb-3">Daftar Layanan Baru</h2>
+
+            <button
+              onClick={() => {
+                setView('home');
+                setSelectedService(null);
+              }}
+              className="absolute top-0 right-0 text-slate-400 hover:text-slate-600 p-6"
+              type="button"
+            >
+              <XCircle />
+            </button>
 
           {/* Info box lembaga pemerintah */}
           <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-[11px] text-amber-900 space-y-1">
